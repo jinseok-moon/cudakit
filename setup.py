@@ -8,6 +8,7 @@ import torch
 import glob
 
 from setuptools import find_packages, setup
+from packaging.version import Version
 
 from torch.utils.cpp_extension import (
     CppExtension,
@@ -18,10 +19,7 @@ from torch.utils.cpp_extension import (
 
 library_name = "extension_cpp"
 
-if torch.__version__ >= "2.6.0":
-    py_limited_api = True
-else:
-    py_limited_api = False
+py_limited_api = Version(torch.__version__) >= Version("2.6.0")
 
 
 def get_extensions():
