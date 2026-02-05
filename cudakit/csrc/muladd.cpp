@@ -1,15 +1,12 @@
 #include <Python.h>
 
-#include <torch/csrc/stable/library.h>
-#include <torch/csrc/stable/ops.h>
-#include <torch/csrc/stable/tensor.h>
-#include <torch/headeronly/core/ScalarType.h>
-#include <torch/headeronly/macros/Macros.h>
+#include <torch/extension.h>
+#include <torch/library.h>
 
 extern "C" {
   /* Creates a dummy empty _C module that can be imported from Python.
      The import from Python will load the .so consisting of this file
-     in this extension, so that the STABLE_TORCH_LIBRARY static initializers
+     in this extension, so that the TORCH_LIBRARY static initializers
      below are run. */
   PyObject* PyInit__C(void)
   {
@@ -27,19 +24,19 @@ extern "C" {
 
 namespace cudakit {
 
-torch::stable::Tensor mymuladd_cpu(
-    const torch::stable::Tensor& a,
-    const torch::stable::Tensor& b,
+at::Tensor mymuladd_cpu(
+    const at::Tensor& a,
+    const at::Tensor& b,
     double c) {
-  STD_TORCH_CHECK(a.sizes().equals(b.sizes()));
-  STD_TORCH_CHECK(a.scalar_type() == torch::headeronly::ScalarType::Float);
-  STD_TORCH_CHECK(b.scalar_type() == torch::headeronly::ScalarType::Float);
-  STD_TORCH_CHECK(a.device().type() == torch::headeronly::DeviceType::CPU);
-  STD_TORCH_CHECK(b.device().type() == torch::headeronly::DeviceType::CPU);
+  TORCH_CHECK(a.sizes().equals(b.sizes()));
+  TORCH_CHECK(a.scalar_type() == at::kFloat);
+  TORCH_CHECK(b.scalar_type() == at::kFloat);
+  TORCH_CHECK(a.device().type() == at::kCPU);
+  TORCH_CHECK(b.device().type() == at::kCPU);
 
-  torch::stable::Tensor a_contig = torch::stable::contiguous(a);
-  torch::stable::Tensor b_contig = torch::stable::contiguous(b);
-  torch::stable::Tensor result = torch::stable::empty_like(a_contig);
+  at::Tensor a_contig = a.contiguous();
+  at::Tensor b_contig = b.contiguous();
+  at::Tensor result = at::empty_like(a_contig);
 
   const float* a_ptr = a_contig.const_data_ptr<float>();
   const float* b_ptr = b_contig.const_data_ptr<float>();
@@ -51,18 +48,18 @@ torch::stable::Tensor mymuladd_cpu(
   return result;
 }
 
-torch::stable::Tensor mymul_cpu(
-    const torch::stable::Tensor& a,
-    const torch::stable::Tensor& b) {
-  STD_TORCH_CHECK(a.sizes().equals(b.sizes()));
-  STD_TORCH_CHECK(a.scalar_type() == torch::headeronly::ScalarType::Float);
-  STD_TORCH_CHECK(b.scalar_type() == torch::headeronly::ScalarType::Float);
-  STD_TORCH_CHECK(a.device().type() == torch::headeronly::DeviceType::CPU);
-  STD_TORCH_CHECK(b.device().type() == torch::headeronly::DeviceType::CPU);
+at::Tensor mymul_cpu(
+    const at::Tensor& a,
+    const at::Tensor& b) {
+  TORCH_CHECK(a.sizes().equals(b.sizes()));
+  TORCH_CHECK(a.scalar_type() == at::kFloat);
+  TORCH_CHECK(b.scalar_type() == at::kFloat);
+  TORCH_CHECK(a.device().type() == at::kCPU);
+  TORCH_CHECK(b.device().type() == at::kCPU);
 
-  torch::stable::Tensor a_contig = torch::stable::contiguous(a);
-  torch::stable::Tensor b_contig = torch::stable::contiguous(b);
-  torch::stable::Tensor result = torch::stable::empty_like(a_contig);
+  at::Tensor a_contig = a.contiguous();
+  at::Tensor b_contig = b.contiguous();
+  at::Tensor result = at::empty_like(a_contig);
 
   const float* a_ptr = a_contig.const_data_ptr<float>();
   const float* b_ptr = b_contig.const_data_ptr<float>();
@@ -76,21 +73,21 @@ torch::stable::Tensor mymul_cpu(
 
 // An example of an operator that mutates one of its inputs.
 void myadd_out_cpu(
-    const torch::stable::Tensor& a,
-    const torch::stable::Tensor& b,
-    torch::stable::Tensor& out) {
-  STD_TORCH_CHECK(a.sizes().equals(b.sizes()));
-  STD_TORCH_CHECK(b.sizes().equals(out.sizes()));
-  STD_TORCH_CHECK(a.scalar_type() == torch::headeronly::ScalarType::Float);
-  STD_TORCH_CHECK(b.scalar_type() == torch::headeronly::ScalarType::Float);
-  STD_TORCH_CHECK(out.scalar_type() == torch::headeronly::ScalarType::Float);
-  STD_TORCH_CHECK(out.is_contiguous());
-  STD_TORCH_CHECK(a.device().type() == torch::headeronly::DeviceType::CPU);
-  STD_TORCH_CHECK(b.device().type() == torch::headeronly::DeviceType::CPU);
-  STD_TORCH_CHECK(out.device().type() == torch::headeronly::DeviceType::CPU);
+    const at::Tensor& a,
+    const at::Tensor& b,
+    at::Tensor& out) {
+  TORCH_CHECK(a.sizes().equals(b.sizes()));
+  TORCH_CHECK(b.sizes().equals(out.sizes()));
+  TORCH_CHECK(a.scalar_type() == at::kFloat);
+  TORCH_CHECK(b.scalar_type() == at::kFloat);
+  TORCH_CHECK(out.scalar_type() == at::kFloat);
+  TORCH_CHECK(out.is_contiguous());
+  TORCH_CHECK(a.device().type() == at::kCPU);
+  TORCH_CHECK(b.device().type() == at::kCPU);
+  TORCH_CHECK(out.device().type() == at::kCPU);
 
-  torch::stable::Tensor a_contig = torch::stable::contiguous(a);
-  torch::stable::Tensor b_contig = torch::stable::contiguous(b);
+  at::Tensor a_contig = a.contiguous();
+  at::Tensor b_contig = b.contiguous();
 
   const float* a_ptr = a_contig.const_data_ptr<float>();
   const float* b_ptr = b_contig.const_data_ptr<float>();
@@ -102,17 +99,17 @@ void myadd_out_cpu(
 }
 
 // Defines the operators
-STABLE_TORCH_LIBRARY(cudakit, m) {
+TORCH_LIBRARY(cudakit, m) {
   m.def("mymuladd(Tensor a, Tensor b, float c) -> Tensor");
   m.def("mymul(Tensor a, Tensor b) -> Tensor");
   m.def("myadd_out(Tensor a, Tensor b, Tensor(a!) out) -> ()");
 }
 
 // Registers CPU implementations for mymuladd, mymul, myadd_out
-STABLE_TORCH_LIBRARY_IMPL(cudakit, CPU, m) {
-  m.impl("mymuladd", TORCH_BOX(&mymuladd_cpu));
-  m.impl("mymul", TORCH_BOX(&mymul_cpu));
-  m.impl("myadd_out", TORCH_BOX(&myadd_out_cpu));
+TORCH_LIBRARY_IMPL(cudakit, CPU, m) {
+  m.impl("mymuladd", &mymuladd_cpu);
+  m.impl("mymul", &mymul_cpu);
+  m.impl("myadd_out", &myadd_out_cpu);
 }
 
 }

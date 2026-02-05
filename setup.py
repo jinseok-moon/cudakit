@@ -19,10 +19,7 @@ from torch.utils.cpp_extension import (
 library_name = "cudakit"
 
 
-if torch.__version__ >= "2.6.0":
-    py_limited_api = True
-else:
-    py_limited_api = False
+py_limited_api = False
 
 
 def get_extensions():
@@ -39,20 +36,9 @@ def get_extensions():
         "cxx": [
             "-O3" if not debug_mode else "-O0",
             "-fdiagnostics-color=always",
-            "-DPy_LIMITED_API=0x03090000",
-            # define TORCH_TARGET_VERSION with min version 2.10 to expose only the
-            # stable API subset from torch
-            # Format: [MAJ 1 byte][MIN 1 byte][PATCH 1 byte][ABI TAG 5 bytes]
-            # 2.10.0 = 0x020A000000000000
-            "-DTORCH_TARGET_VERSION=0x020a000000000000",
         ],
         "nvcc": [
             "-O3" if not debug_mode else "-O0",
-            # NVCC also needs TORCH_TARGET_VERSION for stable ABI in CUDA code
-            "-DTORCH_TARGET_VERSION=0x020a000000000000",
-            # USE_CUDA is currently needed for aoti_torch_get_current_cuda_stream
-            # declaration in shim.h. This will be improved in a future release.
-            "-DUSE_CUDA",
         ],
     }
     if debug_mode:
@@ -95,5 +81,5 @@ setup(
     packages=find_packages(),
     ext_modules=get_extensions(),
     cmdclass={"build_ext": BuildExtension},
-    options={"bdist_wheel": {"py_limited_api": "cp39"}} if py_limited_api else {},
+    options={},
 )
