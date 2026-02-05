@@ -2,15 +2,12 @@ import torch
 from torch.testing._internal.common_utils import (
     TestCase,
     run_tests,
-    parametrize,
     instantiate_parametrized_tests,
 )
 from torch.testing._internal.optests import opcheck
 import unittest
 
-from torch import Tensor
-from typing import Tuple
-import torch.nn.functional as F
+import cudakit
 import torch.nn as nn
 
 
@@ -18,13 +15,8 @@ def reference_muladd(a, b, c):
     return a * b + c
 
 
-def get_extension(ext_name):
-    if ext_name == "extension_cpp":
-        import extension_cpp
-        return extension_cpp
-    else:
-        import extension_cpp_stable
-        return extension_cpp_stable
+def get_extension():
+    return cudakit
 
 
 class TestMyMulAdd(TestCase):
@@ -49,14 +41,12 @@ class TestMyMulAdd(TestCase):
             expected = reference_muladd(*args)
             torch.testing.assert_close(result, expected)
 
-    @parametrize("ext_name", ["extension_cpp", "extension_cpp_stable"])
-    def test_correctness_cpu(self, ext_name):
-        self._test_correctness("cpu", get_extension(ext_name))
+    def test_correctness_cpu(self):
+        self._test_correctness("cpu", get_extension())
 
-    @parametrize("ext_name", ["extension_cpp", "extension_cpp_stable"])
     @unittest.skipIf(not torch.cuda.is_available(), "requires cuda")
-    def test_correctness_cuda(self, ext_name):
-        self._test_correctness("cuda", get_extension(ext_name))
+    def test_correctness_cuda(self):
+        self._test_correctness("cuda", get_extension())
 
     def _test_gradients(self, device, ext):
         samples = self.sample_inputs(device, requires_grad=True)
@@ -71,30 +61,26 @@ class TestMyMulAdd(TestCase):
 
             torch.testing.assert_close(result, expected)
 
-    @parametrize("ext_name", ["extension_cpp", "extension_cpp_stable"])
-    def test_gradients_cpu(self, ext_name):
-        self._test_gradients("cpu", get_extension(ext_name))
+    def test_gradients_cpu(self):
+        self._test_gradients("cpu", get_extension())
 
-    @parametrize("ext_name", ["extension_cpp", "extension_cpp_stable"])
     @unittest.skipIf(not torch.cuda.is_available(), "requires cuda")
-    def test_gradients_cuda(self, ext_name):
-        self._test_gradients("cuda", get_extension(ext_name))
+    def test_gradients_cuda(self):
+        self._test_gradients("cuda", get_extension())
 
-    def _opcheck(self, device, ext_name):
+    def _opcheck(self, device):
         samples = self.sample_inputs(device, requires_grad=True)
         samples.extend(self.sample_inputs(device, requires_grad=False))
-        op = getattr(torch.ops, ext_name).mymuladd.default
+        op = torch.ops.cudakit.mymuladd.default
         for args in samples:
             opcheck(op, args)
 
-    @parametrize("ext_name", ["extension_cpp", "extension_cpp_stable"])
-    def test_opcheck_cpu(self, ext_name):
-        self._opcheck("cpu", ext_name)
+    def test_opcheck_cpu(self):
+        self._opcheck("cpu")
 
-    @parametrize("ext_name", ["extension_cpp", "extension_cpp_stable"])
     @unittest.skipIf(not torch.cuda.is_available(), "requires cuda")
-    def test_opcheck_cuda(self, ext_name):
-        self._opcheck("cuda", ext_name)
+    def test_opcheck_cuda(self):
+        self._opcheck("cuda")
 
 
 class TestMyAddOut(TestCase):
@@ -118,40 +104,35 @@ class TestMyAddOut(TestCase):
             expected = torch.add(*args[:2])
             torch.testing.assert_close(result, expected)
 
-    @parametrize("ext_name", ["extension_cpp", "extension_cpp_stable"])
-    def test_correctness_cpu(self, ext_name):
-        self._test_correctness("cpu", get_extension(ext_name))
+    def test_correctness_cpu(self):
+        self._test_correctness("cpu", get_extension())
 
-    @parametrize("ext_name", ["extension_cpp", "extension_cpp_stable"])
     @unittest.skipIf(not torch.cuda.is_available(), "requires cuda")
-    def test_correctness_cuda(self, ext_name):
-        self._test_correctness("cuda", get_extension(ext_name))
+    def test_correctness_cuda(self):
+        self._test_correctness("cuda", get_extension())
 
-    def _opcheck(self, device, ext_name):
+    def _opcheck(self, device):
         samples = self.sample_inputs(device, requires_grad=True)
         samples.extend(self.sample_inputs(device, requires_grad=False))
-        op = getattr(torch.ops, ext_name).myadd_out.default
+        op = torch.ops.cudakit.myadd_out.default
         for args in samples:
             opcheck(op, args)
 
-    @parametrize("ext_name", ["extension_cpp", "extension_cpp_stable"])
-    def test_opcheck_cpu(self, ext_name):
-        self._opcheck("cpu", ext_name)
+    def test_opcheck_cpu(self):
+        self._opcheck("cpu")
 
-    @parametrize("ext_name", ["extension_cpp", "extension_cpp_stable"])
     @unittest.skipIf(not torch.cuda.is_available(), "requires cuda")
-    def test_opcheck_cuda(self, ext_name):
-        self._opcheck("cuda", ext_name)
+    def test_opcheck_cuda(self):
+        self._opcheck("cuda")
 
 
 class TestTorchCompileStreamSync(TestCase):
     """Test for GitHub issue pytorch/pytorch#157363 - stream synchronization with torch.compile"""
 
-    @parametrize("ext_name", ["extension_cpp", "extension_cpp_stable"])
     @unittest.skipIf(not torch.cuda.is_available(), "requires cuda")
-    def test_compile_with_linear_layer(self, ext_name):
+    def test_compile_with_linear_layer(self):
         """Test custom CUDA kernels with nn.Linear + torch.compile (the original failing case)"""
-        ext = get_extension(ext_name)
+        ext = get_extension()
 
         class Model(nn.Module):
             def __init__(self, size, extension):
@@ -178,11 +159,10 @@ class TestTorchCompileStreamSync(TestCase):
 
                 self.assertEqual(actual, expected)
 
-    @parametrize("ext_name", ["extension_cpp", "extension_cpp_stable"])
     @unittest.skipIf(not torch.cuda.is_available(), "requires cuda")
-    def test_compile_custom_only(self, ext_name):
+    def test_compile_custom_only(self):
         """Test custom operations alone with torch.compile"""
-        ext = get_extension(ext_name)
+        ext = get_extension()
 
         def model(x):
             return ext.ops.mymuladd(x, x, 1.0)

@@ -1,6 +1,7 @@
 build/
 dist/
 torch.egg-info/
+.vscode
 */**/__pycache__
 torch/version.py
 torch/csrc/generic/TensorMethods.cpp
