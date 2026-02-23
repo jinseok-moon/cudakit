@@ -4,7 +4,7 @@
 #include <cassert>
 
 template <int BM, int BN, int BK, int TM>
-__global__ void gemm_gpu_2_sram_1d_tiling(int M, int N, int K, float alpha,
+__global__ void gemm_2_sram_1d_tiling(int M, int N, int K, float alpha,
                                           float* A, float* B, float beta,
                                           float* C) {
   int bkRow = blockIdx.y;
@@ -55,7 +55,7 @@ __global__ void gemm_gpu_2_sram_1d_tiling(int M, int N, int K, float alpha,
   }
 }
 
-void launch_kernel_2_sram_1d_tiling(int M, int N, int K, float alpha, float* A,
+void launch_2_sram_1d_tiling(int M, int N, int K, float alpha, float* A,
                                     float* B, float beta, float* C) {
   const int BM = 64;
   const int BN = 64;
@@ -63,6 +63,6 @@ void launch_kernel_2_sram_1d_tiling(int M, int N, int K, float alpha, float* A,
   const int TM = 8;
   dim3 block((BM * BN) / TM);
   dim3 grid(ceil_div(N, BN), ceil_div(M, BM));
-  gemm_gpu_2_sram_1d_tiling<BM, BN, BK, TM>
+  gemm_2_sram_1d_tiling<BM, BN, BK, TM>
       <<<grid, block>>>(M, N, K, alpha, A, B, beta, C);
 }

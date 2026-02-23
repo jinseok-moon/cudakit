@@ -1,7 +1,7 @@
 #pragma once
 #include <cuda_runtime.h>
 
-__global__ void gemm_gpu_0_naive(int M, int N, int K, float alpha, float* A,
+__global__ void gemm_0_naive(int M, int N, int K, float alpha, float* A,
                                  float* B, float beta, float* C) {
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   int row = tid % N;
@@ -17,7 +17,7 @@ __global__ void gemm_gpu_0_naive(int M, int N, int K, float alpha, float* A,
   C[row * N + col] = alpha * sum + beta * C[row * N + col];
 }
 
-__global__ void gemm_gpu_0_dram_coalescing(int M, int N, int K, float alpha,
+__global__ void gemm_0_dram_coalescing(int M, int N, int K, float alpha,
                                            float* A, float* B, float beta,
                                            float* C) {
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -34,18 +34,18 @@ __global__ void gemm_gpu_0_dram_coalescing(int M, int N, int K, float alpha,
   C[row * N + col] = alpha * sum + beta * C[row * N + col];
 }
 
-void launch_kernel_0_naive(int M, int N, int K, float alpha, float* A, float* B,
+void launch_0_naive(int M, int N, int K, float alpha, float* A, float* B,
                            float beta, float* C) {
   int BLOCKSIZE = 256;
   dim3 block(BLOCKSIZE);
   dim3 grid(ceil_div(M * N, BLOCKSIZE));
-  gemm_gpu_0_naive<<<grid, block>>>(M, N, K, alpha, A, B, beta, C);
+  gemm_0_naive<<<grid, block>>>(M, N, K, alpha, A, B, beta, C);
 }
 
-void launch_kernel_0_dram_coalescing(int M, int N, int K, float alpha, float* A,
+void launch_0_dram_coalescing(int M, int N, int K, float alpha, float* A,
                                      float* B, float beta, float* C) {
   int BLOCKSIZE = 256;
   dim3 block(BLOCKSIZE);
   dim3 grid(ceil_div(M * N, BLOCKSIZE));
-  gemm_gpu_0_dram_coalescing<<<grid, block>>>(M, N, K, alpha, A, B, beta, C);
+  gemm_0_dram_coalescing<<<grid, block>>>(M, N, K, alpha, A, B, beta, C);
 }

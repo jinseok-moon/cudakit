@@ -45,49 +45,13 @@ class LatencyProfiler {
 #define WARMUP_RUNS 10
 #define BENCHMARK_RUNS 20
 #endif
-  // Function to perform warmup and benchmark runs
+  // Function to perform warmup and benchmark runs.
+  // If validate_func is provided, benchmark output includes pass/fail state.
   float benchmark_kernel(const std::string& name,
                          std::function<void()> kernel_func,
+                         std::function<bool()> validate_func = {},
                          int warmup_runs = WARMUP_RUNS,
                          int benchmark_runs = BENCHMARK_RUNS) {
-    // Warmup runs
-    for (int i = 0; i < warmup_runs; ++i) {
-      kernel_func();
-    }
-
-    // Benchmark runs
-    std::vector<float> times;
-    for (int i = 0; i < benchmark_runs; ++i) {
-      float time = time_function(kernel_func);
-      times.push_back(time);
-    }
-
-    // Calculate average time
-    float avg_time =
-        std::accumulate(times.begin(), times.end(), 0.0f) / benchmark_runs;
-
-    // ANSI color codes
-    const char* CYAN = "\033[36m";
-    const char* BOLD = "\033[1m";
-    const char* GREEN = "\033[32m";
-    const char* DIM = "\033[2m";
-    const char* RESET = "\033[0m";
-
-    std::cout << CYAN << "[BENCHMARK] " << RESET << BOLD << std::right
-              << std::setw(30) << name << RESET << " │ " << GREEN << std::fixed
-              << std::setprecision(6) << avg_time << " ms" << RESET << DIM
-              << " (w:" << warmup_runs << " r:" << benchmark_runs << ")"
-              << RESET << std::endl;
-
-    return avg_time;
-  }
-
-  // Function to perform warmup and benchmark runs
-  float benchmark_and_validate_kernel(const std::string& name,
-                                      std::function<void()> kernel_func,
-                                      std::function<bool()> validate_func,
-                                      int warmup_runs = WARMUP_RUNS,
-                                      int benchmark_runs = BENCHMARK_RUNS) {
     // Warmup runs
     for (int i = 0; i < warmup_runs; ++i) {
       kernel_func();
@@ -112,20 +76,22 @@ class LatencyProfiler {
     const char* DIM = "\033[2m";
     const char* RESET = "\033[0m";
 
-    if (validate_func()) {
-      std::cout << CYAN << "[BENCHMARK] " << RESET << BOLD << std::right
-                << std::setw(30) << name << RESET << " │ " << GREEN
-                << std::fixed << std::setprecision(6) << avg_time << " ms"
-                << RESET << DIM << " (w:" << warmup_runs
-                << " r:" << benchmark_runs << ")" << RESET << BOLD << GREEN
-                << " [PASSED]" << RESET << std::endl;
-    } else {
-      std::cout << CYAN << "[BENCHMARK] " << RESET << BOLD << RED << std::right
-                << std::setw(30) << name << RESET << " │ " << RED << std::fixed
-                << std::setprecision(6) << avg_time << " ms" << RESET << DIM
-                << " (w:" << warmup_runs << " r:" << benchmark_runs << ")"
-                << RESET << BOLD << RED << " [FAILED]" << RESET << std::endl;
+    const bool has_validation = static_cast<bool>(validate_func);
+    const bool validation_ok = !has_validation || validate_func();
+
+    std::cout << CYAN << "[BENCHMARK] " << RESET << BOLD
+              << (validation_ok ? GREEN : RED) << std::right << std::setw(40)
+              << name << RESET << " │ " << (validation_ok ? GREEN : RED)
+              << std::fixed << std::setprecision(6) << avg_time << " ms"
+              << RESET << DIM << " (w:" << warmup_runs << " r:" << benchmark_runs
+              << ")" << RESET;
+
+    if (has_validation) {
+      std::cout << BOLD << (validation_ok ? GREEN : RED)
+                << (validation_ok ? " [PASSED]" : " [FAILED]") << RESET;
     }
+    std::cout << std::endl;
+
     return avg_time;
   }
 

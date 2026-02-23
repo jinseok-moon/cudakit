@@ -2,7 +2,7 @@
 #include <cuda_runtime.h>
 
 template <int BLOCKSIZE>
-__global__ void gemm_gpu_1_sram_caching(int M, int N, int K, float alpha,
+__global__ void gemm_1_sram_caching(int M, int N, int K, float alpha,
                                         float* A, float* B, float beta,
                                         float* C) {
   int bkRow = blockIdx.y;
@@ -36,11 +36,11 @@ __global__ void gemm_gpu_1_sram_caching(int M, int N, int K, float alpha,
   C[tRow * N + tCol] = alpha * sum + beta * C[tRow * N + tCol];
 }
 
-void launch_kernel_1_sram_caching(int M, int N, int K, float alpha, float* A,
+void launch_1_sram_caching(int M, int N, int K, float alpha, float* A,
                                   float* B, float beta, float* C) {
   const int BLOCKSIZE = 32;
   dim3 block(BLOCKSIZE * BLOCKSIZE);
   dim3 grid(ceil_div(N, BLOCKSIZE), ceil_div(M, BLOCKSIZE));
-  gemm_gpu_1_sram_caching<BLOCKSIZE>
+  gemm_1_sram_caching<BLOCKSIZE>
       <<<grid, block>>>(M, N, K, alpha, A, B, beta, C);
 }

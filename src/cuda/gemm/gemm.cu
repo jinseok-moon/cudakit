@@ -79,57 +79,65 @@ int main(int argc, char* argv[]) {
   cudaMemcpy(dev_B, B, K * N * sizeof(float), cudaMemcpyHostToDevice);
 
   profiler.benchmark_kernel("CUBLAS GEMM", [&]() {
-    launch_kernel_cublas(M, N, K, 1.0f, dev_A, dev_B, 0.0f, dev_C, handle);
+    launch_cublas(M, N, K, 1.0f, dev_A, dev_B, 0.0f, dev_C, handle);
   });
   // Make Reference
   cudaMemcpy(C, dev_C, M * N * sizeof(float), cudaMemcpyDeviceToHost);
   cudaMemset(dev_C, 0, M * N * sizeof(float));
 
-  profiler.benchmark_and_validate_kernel(
-      "GPU GEMM 0 NAIVE",
+  profiler.benchmark_kernel(
+      "GEMM 0 NAIVE",
       [&]() {
-        launch_kernel_0_naive(M, N, K, 1.0f, dev_A, dev_B, 0.0f, dev_C);
+        launch_0_naive(M, N, K, 1.0f, dev_A, dev_B, 0.0f, dev_C);
       },
       [&]() { return copy_and_check_result(C, dev_C, host_C, M * N); });
   CUDA_CHECK(cudaDeviceSynchronize());
-  profiler.benchmark_and_validate_kernel(
-      "GPU GEMM 0 DRAM COALESCING",
+  profiler.benchmark_kernel(
+      "GEMM 0 DRAM COALESCING",
       [&]() {
-        launch_kernel_0_dram_coalescing(M, N, K, 1.0f, dev_A, dev_B, 0.0f,
+        launch_0_dram_coalescing(M, N, K, 1.0f, dev_A, dev_B, 0.0f,
                                         dev_C);
       },
       [&]() { return copy_and_check_result(C, dev_C, host_C, M * N); });
   CUDA_CHECK(cudaDeviceSynchronize());
 
-  profiler.benchmark_and_validate_kernel(
-      "GPU GEMM 1 SRAM CACHING",
+  profiler.benchmark_kernel(
+      "GEMM 1 SRAM CACHING",
       [&]() {
-        launch_kernel_1_sram_caching(M, N, K, 1.0f, dev_A, dev_B, 0.0f, dev_C);
+        launch_1_sram_caching(M, N, K, 1.0f, dev_A, dev_B, 0.0f, dev_C);
       },
       [&]() { return copy_and_check_result(C, dev_C, host_C, M * N); });
   CUDA_CHECK(cudaDeviceSynchronize());
 
-  profiler.benchmark_and_validate_kernel(
-      "GPU GEMM 2 SRAM 1D TILING",
+  profiler.benchmark_kernel(
+      "GEMM 2 SRAM 1D TILING",
       [&]() {
-        launch_kernel_2_sram_1d_tiling(M, N, K, 1.0f, dev_A, dev_B, 0.0f,
+        launch_2_sram_1d_tiling(M, N, K, 1.0f, dev_A, dev_B, 0.0f,
                                        dev_C);
       },
       [&]() { return copy_and_check_result(C, dev_C, host_C, M * N); });
   CUDA_CHECK(cudaDeviceSynchronize());
 
-  profiler.benchmark_and_validate_kernel(
-      "GPU GEMM 3 SRAM 2D TILING",
+  profiler.benchmark_kernel(
+      "GEMM 3 SRAM 2D TILING",
       [&]() {
-        launch_kernel_3_sram_2d_tiling(M, N, K, 1.0f, dev_A, dev_B, 0.0f,
+        launch_3_sram_2d_tiling(M, N, K, 1.0f, dev_A, dev_B, 0.0f,
                                        dev_C);
       },
       [&]() { return copy_and_check_result(C, dev_C, host_C, M * N); });
 
-  profiler.benchmark_and_validate_kernel(
-      "GPU GEMM 4 WARP TILING",
+  profiler.benchmark_kernel(
+      "GEMM 4 VECTORIZED SRAM 2D TILING",
       [&]() {
-        launch_gemm_4_warptiling(M, N, K, 1.0f, dev_A, dev_B, 0.0f, dev_C);
+        launch_4_vectorized_sram_2d_tiling(M, N, K, 1.0f, dev_A, dev_B, 0.0f, dev_C);
+      },
+      [&]() { return copy_and_check_result(C, dev_C, host_C, M * N); });
+  CUDA_CHECK(cudaDeviceSynchronize());
+
+  profiler.benchmark_kernel(
+      "GEMM 5 WARP TILING",
+      [&]() {
+        launch_gemm_5_warptiling(M, N, K, 1.0f, dev_A, dev_B, 0.0f, dev_C);
       },
       [&]() { return copy_and_check_result(C, dev_C, host_C, M * N); });
   CUDA_CHECK(cudaDeviceSynchronize());
