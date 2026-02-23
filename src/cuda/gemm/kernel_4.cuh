@@ -109,10 +109,10 @@ void launch_4_vectorized_sram_2d_tiling(int M, int N, int K, float alpha,
                                          float *C)
 {
   const int BM = 64;
-  const int BN = 64;
-  const int BK = 8;
-  const int TM = 8;
-  const int TN = 8;
+  const int BN = 128;
+  const int BK = 16;
+  const int TM = 16;
+  const int TN = 4;
 
   dim3 block((BM * BN) / (TM * TN));
   dim3 grid(ceil_div(N, BN), ceil_div(M, BM));
